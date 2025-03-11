@@ -3,6 +3,8 @@ import datetime
 import speech_recognition as sr
 import webbrowser as wb
 import os
+import requests
+import time as t
 
 fridayAI = pyttsx3.init()
 
@@ -40,7 +42,7 @@ def command(language='en-US'):
         print(f'Linh Dinh: {query}')
     except Exception as e:
         print(e)
-        speak('Say that again, please... or type the command')
+        speak('Please type the command')
         query = str(input('Your command is: '))
     return query    
 
@@ -54,6 +56,53 @@ def set_language():
     else:
         speak('Invalid choice, defaulting to English.')
         return 'en-US'
+
+def get_weather():
+    api_key = "c5b6d867d25225d52abdf0b9ce963b6c"
+    base_url = "http://api.openweathermap.org/data/2.5/weather?"
+    speak("Please tell me the city name")
+    city_name = command(language='en-US')
+    complete_url = base_url + "appid=" + api_key + "&q=" + city_name
+    response = requests.get(complete_url)
+    data = response.json()
+    if data["cod"] != "404":
+        main = data["main"]
+        weather = data["weather"]
+        temperature = main["temp"]
+        pressure = main["pressure"]
+        humidity = main["humidity"]
+        weather_description = weather[0]["description"]
+        speak(f"Temperature: {temperature}°K\nPressure: {pressure} hPa\nHumidity: {humidity}%\nDescription: {weather_description}")
+    else:
+        speak("City Not Found")
+
+def get_news():
+    api_key = "52ed7534918a4622884ec31164f7fd83"
+    base_url = "https://newsapi.org/v2/top-headlines?country=us&apiKey="
+    complete_url = base_url + api_key
+    response = requests.get(complete_url)
+    data = response.json()
+    articles = data["articles"]
+    speak("Here are the top news headlines")
+    for article in articles[:5]:
+        speak(article["title"])
+
+def set_reminder():
+    speak("What shall I remind you about?")
+    reminder = command(language='en-US')
+    speak("In how many minutes?")
+    minutes = int(command(language='en-US'))
+    speak(f"Reminder set for {reminder} in {minutes} minutes.")
+    t.sleep(minutes * 60)
+    speak(f"Reminder: {reminder}")
+
+def tell_joke():
+    jokes = [
+        "Why don't scientists trust atoms? Because they make up everything!",
+        "Why did the scarecrow win an award? Because he was outstanding in his field!",
+        "Why don't skeletons fight each other? They don't have the guts."
+    ]
+    speak(jokes[datetime.datetime.now().second % len(jokes)])
 
 if __name__ == '__main__':
     welcome()
@@ -77,6 +126,16 @@ if __name__ == '__main__':
             os.startfile(video)
         elif "time" in query:
             time()
+        elif "weather" in query:
+            get_weather()
+        elif "news" in query:
+            get_news()
+        elif "reminder" in query:
+            set_reminder()
+        elif "joke" in query:
+            tell_joke()
         elif "quit" in query or "bye" in query:
             speak('Goodbye, sir!')
             quit()
+        else:
+            speak("Sorry, I didn't understand that. Please try again.")
